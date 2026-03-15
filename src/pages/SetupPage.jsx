@@ -1,6 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { initSupabase } from "../lib/supabase.js";
 
 const SQL_SETUP = `-- Run this in your Supabase SQL Editor first:
 
@@ -79,25 +77,19 @@ create policy "allow_all" on teams        for all using (true) with check (true)
 create policy "allow_all" on participants for all using (true) with check (true);
 create policy "allow_all" on scores       for all using (true) with check (true);`;
 
-export default function SetupPage() {
-  const navigate = useNavigate();
-  const [url, setUrl] = useState("");
-  const [key, setKey] = useState("");
+/**
+ * SetupPage — shown on first run when no Supabase config exists.
+ *
+ * Props:
+ *   onDone(url, key) — called when the user submits credentials or
+ *                      picks demo mode. App.jsx owns localStorage writes
+ *                      and navigation so the SetupGuard state update and
+ *                      the route change happen in the same render cycle.
+ */
+export default function SetupPage({ onDone }) {
+  const [url,     setUrl]     = useState("");
+  const [key,     setKey]     = useState("");
   const [showKey, setShowKey] = useState(false);
-
-  function handleInit() {
-    if (!url || !key) return;
-    localStorage.setItem("qf_url", url);
-    localStorage.setItem("qf_key", key);
-    initSupabase(url, key);
-    navigate("/");
-  }
-
-  function handleDemo() {
-    localStorage.setItem("qf_url", "DEMO");
-    localStorage.setItem("qf_key", "DEMO");
-    navigate("/");
-  }
 
   return (
     <div
@@ -115,6 +107,7 @@ export default function SetupPage() {
         className="cyber-panel page-enter"
         style={{ maxWidth: 600, width: "100%", padding: 32, borderRadius: 4 }}
       >
+        {/* Title */}
         <div
           style={{
             fontFamily: "'Orbitron', monospace",
@@ -156,9 +149,16 @@ export default function SetupPage() {
             placeholder="eyJ..."
             value={key}
             onChange={(e) => setKey(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && url && key && onDone(url, key)}
           />
           <div
-            style={{ marginTop: 4, fontSize: 11, color: "var(--cyber-dim)", cursor: "pointer" }}
+            style={{
+              marginTop: 4,
+              fontSize: 11,
+              color: "var(--cyber-dim)",
+              cursor: "pointer",
+              fontFamily: "'Share Tech Mono', monospace",
+            }}
             onClick={() => setShowKey((v) => !v)}
           >
             {showKey ? "▲ Hide key" : "▼ Show key"}
@@ -186,7 +186,7 @@ export default function SetupPage() {
             ▸ REQUIRED SQL SETUP
           </div>
           <div style={{ fontSize: 11, color: "#888", marginBottom: 8 }}>
-            Paste this into your Supabase SQL Editor and run it:
+            Paste this into your Supabase SQL Editor and run it first:
           </div>
           <textarea
             readOnly
@@ -205,29 +205,60 @@ export default function SetupPage() {
           />
         </div>
 
+        {/* Connect button */}
         <button
           className="cyber-btn success"
           style={{ width: "100%", padding: 14, fontSize: 13 }}
-          onClick={handleInit}
+          onClick={() => onDone(url, key)}
           disabled={!url || !key}
         >
           INITIALIZE SYSTEM
         </button>
 
-        <div style={{ marginTop: 12, textAlign: "center" }}>
-          <button
-            onClick={handleDemo}
+        {/* Divider */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            margin: "20px 0 16px",
+          }}
+        >
+          <div style={{ flex: 1, height: 1, background: "var(--cyber-border)" }} />
+          <span
             style={{
-              background: "none",
-              border: "none",
-              color: "var(--cyber-dim)",
-              fontSize: 11,
-              cursor: "pointer",
               fontFamily: "'Share Tech Mono', monospace",
+              fontSize: 10,
+              color: "var(--cyber-dim)",
             }}
           >
-            ↗ SKIP — USE DEMO MODE (in-memory, no Supabase needed)
-          </button>
+            OR
+          </span>
+          <div style={{ flex: 1, height: 1, background: "var(--cyber-border)" }} />
+        </div>
+
+        {/* Demo mode button — now more visible */}
+        <button
+          className="cyber-btn purple"
+          style={{ width: "100%", padding: 12, fontSize: 11 }}
+          onClick={() => onDone("DEMO", "DEMO")}
+        >
+          ↗ DEMO MODE — run in memory, no Supabase needed
+        </button>
+
+        <div
+          style={{
+            marginTop: 12,
+            fontFamily: "'Share Tech Mono', monospace",
+            fontSize: 10,
+            color: "var(--cyber-dim)",
+            textAlign: "center",
+            lineHeight: 1.6,
+          }}
+        >
+          Demo mode stores data in memory only.
+          <br />
+          Refreshing the page will reset all data.
         </div>
       </div>
     </div>

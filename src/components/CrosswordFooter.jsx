@@ -9,18 +9,21 @@
  *   4 Down   — TECH     (kind of team)
  *   5 Down   — CSA      (organiser)
  */
-export default function CrosswordFooter() {
-  const ROWS = 10;
-  const COLS = 13;
+import { useState } from 'react';
 
-  // [word, startRow, startCol, direction]
+export default function CrosswordFooter() {
+  const [hoveredWordIndex, setHoveredWordIndex] = useState(-1);
+  const ROWS = 9;
+  const COLS = 12;
+
+  // [word, startRow, startCol, direction] - reordered per correct clue mappings
   const wordDefs = [
-    { word: "RAJEEV",   row: 1, col: 0, dir: "across" },
-    { word: "HARSHITH", row: 0, col: 3, dir: "down"   },
-    { word: "DINESH",   row: 4, col: 1, dir: "across" },
-    { word: "AMCS",     row: 7, col: 5, dir: "across" },
-    { word: "TECH",     row: 0, col: 0, dir: "down"   },
-    { word: "CSA",      row: 5, col: 9, dir: "down"   },
+    { word: "HARSHITH", row: 1, col: 3, dir: "down"   }, // across 0: best frontend
+    { word: "DINESH",   row: 0, col: 8, dir: "down" }, // across 1: quiz
+    { word: "AMCS",     row: 2, col: 3, dir: "across" }, // across 2: dept
+    { word: "RAJEEV",   row: 3, col: 5, dir: "across" }, // down 0: backend
+    { word: "TECH",     row: 1, col: 0, dir: "across"   }, // down 1: team
+    { word: "CSA",      row: 1, col: 6, dir: "down"   }, // down 2: organiser
   ];
 
   // Build letter grid
@@ -35,23 +38,24 @@ export default function CrosswordFooter() {
 
   // Clue-number positions
   const clueNums = {
-    "1-0": 1,  // RAJEEV across + TECH down share start
-    "0-3": 1,  // HARSHITH down  (re-uses "1" since puzzle numbering is by start cell)
-    "4-1": 2,  // DINESH across
-    "7-5": 3,  // AMCS across
-    "5-9": 5,  // CSA down
+    "1-3": 1,  // RAJEEV across + TECH down share start
+    "0-8": 2,  // HARSHITH down  (re-uses "1" since puzzle numbering is by start cell)
+    "2-3": 3,  // DINESH across
+    "3-5": 4,  // AMCS across
+    "1-0": 5,
+    "1-6": 6,  // CSA down
   };
 
   const clues = {
     across: [
-      "1. Who is the best frontend developer? (6)",
+      "1. Who is the best frontend developer? (8)",
       "2. Who conducts the quiz? (6)",
       "3. Department acronym? (4)",
     ],
     down: [
-      "1. Who did all the backend work? (8)",
-      "4. What kind of team built this? (4)",
-      "5. Who organised the event? (3)",
+      "4. Who did all the backend work? (6)",
+      "5. What kind of team built this? (4)",
+      "6. Who organised the event? (3)",
     ],
   };
 
@@ -108,8 +112,23 @@ export default function CrosswordFooter() {
                 <tr key={ri}>
                   {row.map((cell, ci) => {
                     const num = clueNums[`${ri}-${ci}`];
+                    const hoveredWord = hoveredWordIndex >= 0 ? wordDefs[hoveredWordIndex] : null;
+                    const isHighlighted = hoveredWord && (() => {
+                      const wordRow = hoveredWord.row;
+                      const wordCol = hoveredWord.col;
+                      const wordLen = hoveredWord.word.length;
+                      const dir = hoveredWord.dir;
+                      if (dir === 'across') {
+                        return ri === wordRow && ci >= wordCol && ci < wordCol + wordLen;
+                      } else {
+                        return ci === wordCol && ri >= wordRow && ri < wordRow + wordLen;
+                      }
+                    })();
                     return (
-                      <td key={ci} className={cell ? "filled" : "black"}>
+                      <td 
+                        key={ci} 
+                        className={`${cell ? "filled" : "black"} ${isHighlighted ? "highlighted" : ""}`}
+                      >
                         {num && <span className="clue-num">{num}</span>}
                         {cell ?? ""}
                       </td>
@@ -135,15 +154,19 @@ export default function CrosswordFooter() {
               >
                 Across
               </div>
-              {clues.across.map((c, i) => (
+{clues.across.map((c, i) => (
                 <div
                   key={i}
+                  data-word-index={i}
+                  onMouseEnter={() => setHoveredWordIndex(i)}
+                  onMouseLeave={() => setHoveredWordIndex(-1)}
                   style={{
                     fontFamily: "'Cormorant Garamond', serif",
                     fontSize: 14,
                     color: "#9070b0",
                     marginBottom: 6,
                     lineHeight: 1.4,
+                    cursor: "pointer",
                   }}
                 >
                   {c}
@@ -163,15 +186,19 @@ export default function CrosswordFooter() {
               >
                 Down
               </div>
-              {clues.down.map((c, i) => (
+{clues.down.map((c, i) => (
                 <div
                   key={i}
+                  data-word-index={3 + i}
+                  onMouseEnter={() => setHoveredWordIndex(3 + i)}
+                  onMouseLeave={() => setHoveredWordIndex(-1)}
                   style={{
                     fontFamily: "'Cormorant Garamond', serif",
                     fontSize: 14,
                     color: "#9070b0",
                     marginBottom: 6,
                     lineHeight: 1.4,
+                    cursor: "pointer",
                   }}
                 >
                   {c}

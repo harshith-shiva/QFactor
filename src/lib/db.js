@@ -10,7 +10,7 @@
  * never needs to care which is in use.
  */
 
-import { dbSelect, dbInsert, dbUpdate } from "./supabase.js";
+import { dbSelect, dbInsert, dbUpdate, dbDelete } from "./supabase.js";
 
 // ─── REAL SUPABASE DB ─────────────────────────────────────────────────────────
 
@@ -58,6 +58,15 @@ export const realDB = {
     return rows[0];
   },
   getScores: (eventId) => dbSelect("scores", "*", `event_id=eq.${eventId}`),
+
+  // NEW — update a single score row (points and/or question_number)
+  updateScore: async (id, data) => {
+    const rows = await dbUpdate("scores", `id=eq.${id}`, data);
+    return rows[0];
+  },
+
+  // NEW — delete a single score row
+  deleteScore: (id) => dbDelete("scores", `id=eq.${id}`),
 };
 
 // ─── IN-MEMORY DEMO DB ────────────────────────────────────────────────────────
@@ -93,6 +102,10 @@ function demoUpdate(table, id, data) {
     r.id === id ? { ...r, ...data } : r
   );
   return _store[table].find((r) => r.id === id);
+}
+
+function demoDelete(table, id) {
+  _store[table] = _store[table].filter((r) => r.id !== id);
 }
 
 export const demoDb = {
@@ -131,6 +144,16 @@ export const demoDb = {
     Promise.resolve(demoInsert("scores", data)),
   getScores: (eventId) =>
     Promise.resolve(demoFilter("scores", { event_id: eventId })),
+
+  // NEW — update a single score row
+  updateScore: (id, data) =>
+    Promise.resolve(demoUpdate("scores", id, data)),
+
+  // NEW — delete a single score row
+  deleteScore: (id) => {
+    demoDelete("scores", id);
+    return Promise.resolve();
+  },
 };
 
 /** Reset demo store (useful for tests) */

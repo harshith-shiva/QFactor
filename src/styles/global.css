@@ -255,6 +255,23 @@ body {
   font-size: 7px; color: #aaa; font-family: sans-serif;
 }
 
+/* Crossword highlight */
+.crossword-grid td.filled:hover {
+  box-shadow: inset 0 0 5px rgba(0, 245, 255, 0.3);
+}
+
+.crossword-grid td.highlighted {
+  background: #3a5a94 !important;
+  color: #a0f8ff !important;
+  box-shadow: 0 0 20px rgba(0, 245, 255, 0.8), inset 0 0 12px rgba(0, 245, 255, 0.4), 0 0 30px rgba(0, 245, 255, 0.3) !important;
+  transform: scale(1.05);
+  transition: all 0.25s ease;
+}
+
+.crossword-grid td.highlighted .clue-num {
+  color: #fff !important;
+}
+
 /* ── LANDING PAGE (Women's Day) ──────────────────────────────────────────── */
 .wd-hero {
   background: linear-gradient(135deg, #0d0221 0%, #1a0533 30%, #2d0a4e 60%, #1a0533 100%);
@@ -276,6 +293,59 @@ body {
   background: radial-gradient(circle, #ff99cc, #ff006e);
   animation: floatPetal 6s ease-in-out infinite;
   opacity: 0.6;
+}
+
+/* ── LOADING SCREEN ──────────────────────────────────────────────────────── */
+.loading-screen {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(135deg, #0d0221 0%, #1a0533 50%, #2d0a4e 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  opacity: 1;
+  transition: opacity 0.5s ease-out;
+}
+
+.loading-screen.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loader-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+♀-symbol {
+  font-size: clamp(120px, 30vw, 250px);
+  color: #ff99cc;
+  text-shadow: 0 0 40px rgba(255, 153, 204, 0.6);
+  animation: rotate♀ 3s linear infinite;
+  line-height: 1;
+  position: relative;
+  z-index: 2;
+}
+
+@keyframes rotate♀ {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(720deg); }
+}
+
+.loader-text {
+  position: absolute;
+  font-family: "'Cormorant Garamond', serif";
+  font-size: clamp(24px, 6vw, 48px);
+  color: #f0c0ff;
+  letter-spacing: 4px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-shadow: 0 0 20px rgba(240, 192, 255, 0.5);
+  z-index: 3;
 }
 @keyframes floatPetal {
   0%, 100% { transform: translateY(0) rotate(0deg);   opacity: 0.6; }
