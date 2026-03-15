@@ -1,10 +1,41 @@
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import CrosswordFooter from "../components/CrosswordFooter.jsx";
 
 const PETALS = Array.from({ length: 18 }, (_, i) => i);
 
+// Fade-in keyframes injected once into <head>
+const FADE_STYLE = `
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(22px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+`;
+
+function useFadeStyle(delay = 0, mode = "up") {
+  return {
+    opacity: 0,
+    animation: `${mode === "up" ? "fadeInUp" : "fadeIn"} 0.8s ease forwards`,
+    animationDelay: `${delay}ms`,
+  };
+}
+
 export default function LandingPage() {
   const navigate = useNavigate();
+
+  // Inject keyframes once
+  useEffect(() => {
+    if (!document.getElementById("wd-fade-keyframes")) {
+      const tag = document.createElement("style");
+      tag.id = "wd-fade-keyframes";
+      tag.textContent = FADE_STYLE;
+      document.head.appendChild(tag);
+    }
+  }, []);
 
   return (
     <div>
@@ -28,6 +59,7 @@ export default function LandingPage() {
             fontSize: 22,
             color: "#f0c0ff",
             letterSpacing: 3,
+            ...useFadeStyle(0, "up"),
           }}
         >
           CSA × AMCS{" "}
@@ -39,6 +71,7 @@ export default function LandingPage() {
             color: "#c090e0",
             fontSize: 14,
             letterSpacing: 2,
+            ...useFadeStyle(150, "up"),
           }}
         >
           16 · III · 2026
@@ -82,6 +115,7 @@ export default function LandingPage() {
               justifyContent: "center",
               gap: 16,
               marginBottom: 24,
+              ...useFadeStyle(200, "fadeIn"),
             }}
           >
             <div
@@ -109,6 +143,7 @@ export default function LandingPage() {
               color: "#c090e0",
               textTransform: "uppercase",
               marginBottom: 16,
+              ...useFadeStyle(350, "up"),
             }}
           >
             Celebrating Women's Day 2026
@@ -122,6 +157,7 @@ export default function LandingPage() {
               lineHeight: 1.1,
               marginBottom: 16,
               textShadow: "0 0 40px rgba(255,0,110,0.3)",
+              ...useFadeStyle(500, "up"),
             }}
           >
             Women Who{" "}
@@ -138,6 +174,7 @@ export default function LandingPage() {
               lineHeight: 1.7,
               marginBottom: 32,
               fontStyle: "italic",
+              ...useFadeStyle(700, "up"),
             }}
           >
             Hosted by the Department of Computer Science &amp; Applications
@@ -154,6 +191,7 @@ export default function LandingPage() {
               border: "1px solid rgba(255,0,110,0.3)",
               padding: "10px 24px",
               borderRadius: 40,
+              ...useFadeStyle(900, "up"),
             }}
           >
             <span style={{ fontSize: 16 }}>📅</span>
@@ -188,6 +226,7 @@ export default function LandingPage() {
                 color: "#9060c0",
                 textTransform: "uppercase",
                 marginBottom: 12,
+                ...useFadeStyle(1000, "up"),
               }}
             >
               Events of the Day
@@ -197,6 +236,7 @@ export default function LandingPage() {
                 fontFamily: "'Playfair Display', serif",
                 fontSize: 40,
                 color: "#f0d0ff",
+                ...useFadeStyle(1150, "up"),
               }}
             >
               A Day of{" "}
@@ -220,6 +260,7 @@ export default function LandingPage() {
               flexWrap: "wrap",
               position: "relative",
               overflow: "hidden",
+              ...useFadeStyle(1300, "up"),
             }}
           >
             <div
@@ -235,7 +276,7 @@ export default function LandingPage() {
                 pointerEvents: "none",
               }}
             />
-            <div style={{ fontSize: 60 }}>🧠</div>
+            <div style={{ fontSize: 60, ...useFadeStyle(1400, "up") }}>🧠</div>
             <div style={{ flex: 1, minWidth: 200 }}>
               <div
                 style={{
@@ -245,6 +286,7 @@ export default function LandingPage() {
                   color: "#9060c0",
                   textTransform: "uppercase",
                   marginBottom: 8,
+                  ...useFadeStyle(1450, "up"),
                 }}
               >
                 Featured Event
@@ -255,6 +297,7 @@ export default function LandingPage() {
                   fontSize: 32,
                   color: "#f0d0ff",
                   marginBottom: 8,
+                  ...useFadeStyle(1550, "up"),
                 }}
               >
                 Quiz Competition
@@ -267,6 +310,7 @@ export default function LandingPage() {
                   lineHeight: 1.6,
                   marginBottom: 20,
                   fontStyle: "italic",
+                  ...useFadeStyle(1650, "up"),
                 }}
               >
                 Conducted by Quiz Master{" "}
@@ -275,7 +319,9 @@ export default function LandingPage() {
                 </strong>{" "}
                 — test your knowledge, challenge your peers, and claim the crown.
               </p>
-              <LaunchButton onClick={() => navigate("/signin")} />
+              <div style={{ ...useFadeStyle(1800, "up") }}>
+                <LaunchButton onClick={() => navigate("/signin")} />
+              </div>
             </div>
           </div>
         </div>
