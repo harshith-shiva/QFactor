@@ -95,7 +95,6 @@ export default function App() {
 
       <Routes>
         {/* SetupGuard wraps everything — shows SetupPage until configured */}
-        <Route element={<SetupGuard />}>
 
           {/* ── Public routes ── */}
           <Route path="/"       element={<LandingPage />} />
@@ -114,7 +113,6 @@ export default function App() {
           {/* ── Fallback ── */}
           <Route path="*" element={<Navigate to="/" replace />} />
 
-        </Route>
       </Routes>
     </AuthProvider>
   );
