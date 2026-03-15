@@ -4,10 +4,21 @@
  * the bundle small and have full control over every request.
  */
 
-let SUPABASE_URL = "";
-let SUPABASE_ANON_KEY = "";
+// let SUPABASE_URL = "";
+// let SUPABASE_ANON_KEY = "";
+
+
 
 /** Call once at startup (SetupPage / App.jsx) */
+// export function initSupabase(url, key) {
+//   SUPABASE_URL = url;
+//   SUPABASE_ANON_KEY = key;
+// }
+
+
+let SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL ?? "";
+let SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY ?? "";
+
 export function initSupabase(url, key) {
   SUPABASE_URL = url;
   SUPABASE_ANON_KEY = key;

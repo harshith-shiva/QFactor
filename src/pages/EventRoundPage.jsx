@@ -20,6 +20,7 @@ const ACTION_LABELS = {
   buzzer_plus:  "+BUZZER",
   buzzer_minus: "-BUZZER",
   bonus:        "BONUS",
+  skip:         "SKIP",
 };
 
 const ACTION_COLORS = {
@@ -29,6 +30,7 @@ const ACTION_COLORS = {
   buzzer_plus:  "var(--cyber-yellow)",
   buzzer_minus: "var(--cyber-red)",
   bonus:        "var(--cyber-glow2)",
+  skip:         "var(--cyber-dim)",
 };
 
 export default function EventRoundPage() {
@@ -73,9 +75,22 @@ export default function EventRoundPage() {
         db.getScores(eventId),
       ]);
       setEvent(ev);
-      setRounds(r ?? []);
+      const loadedRounds = r ?? [];
+      const loadedScores = s ?? [];
+      setRounds(loadedRounds);
       setTeams(t ?? []);
-      setScores(s ?? []);
+      setScores(loadedScores);
+
+      // Restore questionNum from the highest question_number already in DB for this round
+      const thisRound = loadedRounds[currentRoundIdx];
+      if (thisRound) {
+        const roundScores = loadedScores.filter((sc) => sc.round_id === thisRound.id);
+        if (roundScores.length > 0) {
+          const maxQ = Math.max(...roundScores.map((sc) => sc.question_number ?? 0));
+          setQuestionNum(maxQ + 1);
+        }
+      }
+
       setLoading(false);
     }
     load();
@@ -122,6 +137,21 @@ export default function EventRoundPage() {
     setScores((prev) => [...prev, newScore]);
     setBonusTeamId(null);
     setBonusPts("");
+  }
+
+  // ── Skip Question ──────────────────────────────────────────────────────────
+  async function handleSkipQuestion() {
+    if (!currentRound) return;
+    const newScore = await db.addScore({
+      event_id: eventId,
+      round_id: currentRound.id,
+      team_id: null,
+      question_number: questionNum,
+      action_type: "skip",
+      points: 0,
+    });
+    setScores((prev) => [...prev, newScore]);
+    setQuestionNum((q) => Math.min(q + 1, currentRound.num_questions ?? 99));
   }
 
   // ── Audit: start editing a row ─────────────────────────────────────────────
@@ -223,18 +253,36 @@ export default function EventRoundPage() {
         title={`${event?.name ?? "EVENT"} · ${currentRound?.name ?? "ROUND"}`}
         backTo="/admin/events"
         extra={
-          <div
-            style={{
-              fontFamily: "'Orbitron', monospace",
-              fontSize: 13,
-              color: "var(--cyber-yellow)",
-              letterSpacing: 2,
-              background: "rgba(255,215,0,0.08)",
-              padding: "4px 12px",
-              border: "1px solid rgba(255,215,0,0.3)",
-            }}
-          >
-            Q{String(questionNum).padStart(2, "0")}
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <button
+              className="cyber-btn"
+              onClick={handleSkipQuestion}
+              style={{
+                padding: "6px 16px",
+                fontSize: 11,
+                letterSpacing: 1,
+                borderColor: "rgba(255,215,0,0.4)",
+                color: "var(--cyber-yellow)",
+              }}
+            >
+              SKIP Q ▶▶
+            </button>
+            <div
+              style={{
+                fontFamily: "'Orbitron', monospace",
+                fontSize: 18,
+                fontWeight: 700,
+                color: "var(--cyber-yellow)",
+                letterSpacing: 3,
+                background: "rgba(255,215,0,0.1)",
+                padding: "6px 18px",
+                border: "1px solid rgba(255,215,0,0.4)",
+                minWidth: 72,
+                textAlign: "center",
+              }}
+            >
+              Q{String(questionNum).padStart(2, "0")}
+            </div>
           </div>
         }
       />
@@ -472,7 +520,7 @@ export default function EventRoundPage() {
                             color: "var(--cyber-text)",
                           }}
                         >
-                          {teamNameMap[row.team_id] ?? row.team_id}
+                          {row.team_id ? (teamNameMap[row.team_id] ?? row.team_id) : "—"}
                         </span>
                       </td>
 

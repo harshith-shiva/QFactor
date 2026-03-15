@@ -1,36 +1,112 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import CrosswordFooter from "../components/CrosswordFooter.jsx";
 import IntroOverlay from "../components/IntroOverlay.jsx";
 
 const PETALS = Array.from({ length: 18 }, (_, i) => i);
 
+const KEYFRAMES = `
+@keyframes wdFadeInUp {
+  0%   { opacity: 0; transform: translateY(55px) scale(0.97); }
+  60%  { opacity: 1; }
+  100% { opacity: 1; transform: translateY(0px) scale(1); }
+}
+@keyframes wdFadeIn {
+  0%   { opacity: 0; transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1); }
+}
+`;
+
+function injectKeyframes() {
+  if (!document.getElementById("wd-fade-kf")) {
+    const s = document.createElement("style");
+    s.id = "wd-fade-kf";
+    s.textContent = KEYFRAMES;
+    document.head.appendChild(s);
+  }
+}
+
+function loadFadeStyle(ready, delay = 0, mode = "up") {
+  if (!ready) return { opacity: 0 };
+  return {
+    opacity: 0,
+    animation: `${mode === "up" ? "wdFadeInUp" : "wdFadeIn"} 1s cubic-bezier(0.22,1,0.36,1) forwards`,
+    animationDelay: `${delay}ms`,
+  };
+}
+
+function useScrollFade() {
+  const ref = useRef(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) { setVisible(true); observer.disconnect(); }
+      },
+      { threshold: 0.12 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  return [ref, visible];
+}
+
+function scrollFadeStyle(visible, delay = 0, mode = "up") {
+  if (!visible) return {
+    opacity: 0,
+    transform: mode === "up" ? "translateY(55px) scale(0.97)" : "scale(0.95)",
+  };
+  return {
+    opacity: 0,
+    animation: `${mode === "up" ? "wdFadeInUp" : "wdFadeIn"} 1s cubic-bezier(0.22,1,0.36,1) forwards`,
+    animationDelay: `${delay}ms`,
+  };
+}
+
+function ScrollFade({ delay = 0, mode = "up", as: Tag = "div", style: s = {}, children, ...rest }) {
+  const [ref, visible] = useScrollFade();
+  return (
+    <Tag ref={ref} style={{ ...s, ...scrollFadeStyle(visible, delay, mode) }} {...rest}>
+      {children}
+    </Tag>
+  );
+}
+
 export default function LandingPage() {
   const navigate = useNavigate();
 
-  // Show intro once per session
+  useEffect(() => { injectKeyframes(); }, []);
+
   const [showIntro, setShowIntro] = useState(
     () => !sessionStorage.getItem("qf_intro_seen")
   );
+  const [heroReady, setHeroReady] = useState(
+    () => !!sessionStorage.getItem("qf_intro_seen")
+  );
+
+  const heroRef   = useRef(null);
+  const eventsRef = useRef(null);
+  const footerRef = useRef(null);
+
+  function scrollTo(ref) {
+    ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   function handleIntroDone() {
     sessionStorage.setItem("qf_intro_seen", "1");
     setShowIntro(false);
+    setTimeout(() => setHeroReady(true), 300);
   }
 
   return (
     <>
-      {/* ── Cinematic intro — unmounts after fade-out completes ── */}
       {showIntro && <IntroOverlay onComplete={handleIntroDone} />}
 
-      <div
-        style={{
-          // Fade the page in as the overlay fades out
-          transition: "opacity 0.8s ease 0.2s",
-          opacity: showIntro ? 0 : 1,
-        }}
-      >
-        {/* ── Nav ── */}
+      <div style={{ transition: "opacity 0.8s ease 0.2s", opacity: showIntro ? 0 : 1 }}>
+
+        {/* ══ Nav ════════════════════════════════════════════════ */}
         <nav
           style={{
             background: "rgba(10,0,25,0.95)",
@@ -44,31 +120,66 @@ export default function LandingPage() {
             zIndex: 100,
           }}
         >
+          {/* Brand */}
           <div
             style={{
               fontFamily: "'Cormorant Garamond', serif",
               fontSize: 22,
               color: "#f0c0ff",
               letterSpacing: 3,
+              ...loadFadeStyle(heroReady, 0),
             }}
           >
             CSA × AMCS{" "}
             <span style={{ color: "#ff99cc", fontStyle: "italic" }}>PSG</span>
           </div>
-          <div
-            style={{
-              fontFamily: "'Cormorant Garamond', serif",
-              color: "#c090e0",
-              fontSize: 14,
-              letterSpacing: 2,
-            }}
-          >
-            16 · III · 2026
+
+          {/* Nav buttons + Date — right side */}
+          <div style={{ display: "flex", alignItems: "center", gap: 32, ...loadFadeStyle(heroReady, 200) }}>
+            {[
+              { label: "Home",     ref: heroRef },
+              { label: "Event",    ref: eventsRef },
+              { label: "About Us", ref: footerRef },
+            ].map(({ label, ref }) => (
+              <button
+                key={label}
+                onClick={() => scrollTo(ref)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  fontFamily: "'Cormorant Garamond', serif",
+                  fontSize: 15,
+                  letterSpacing: 3,
+                  color: "#c090e0",
+                  textTransform: "uppercase",
+                  padding: 0,
+                }}
+              >
+                {label}
+              </button>
+            ))}
+
+            {/* Divider */}
+            <div style={{ width: 1, height: 18, background: "rgba(180,60,255,0.3)" }} />
+
+            {/* Date */}
+            <div
+              style={{
+                fontFamily: "'Cormorant Garamond', serif",
+                color: "#c090e0",
+                fontSize: 14,
+                letterSpacing: 2,
+              }}
+            >
+              16 · III · 2026
+            </div>
           </div>
         </nav>
 
-        {/* ── Hero ── */}
+        {/* ══ Hero ═══════════════════════════════════════════════ */}
         <section
+          ref={heroRef}
           className="wd-hero"
           style={{
             padding: "80px 32px",
@@ -77,9 +188,9 @@ export default function LandingPage() {
             alignItems: "center",
             justifyContent: "center",
             position: "relative",
+            scrollMarginTop: 64,
           }}
         >
-          {/* Floating petals */}
           {PETALS.map((i) => (
             <div
               key={i}
@@ -95,15 +206,7 @@ export default function LandingPage() {
             />
           ))}
 
-          <div
-            style={{
-              textAlign: "center",
-              position: "relative",
-              zIndex: 2,
-              maxWidth: 760,
-            }}
-          >
-            {/* Decorative divider */}
+          <div style={{ textAlign: "center", position: "relative", zIndex: 2, maxWidth: 760 }}>
             <div
               style={{
                 display: "flex",
@@ -111,23 +214,12 @@ export default function LandingPage() {
                 justifyContent: "center",
                 gap: 16,
                 marginBottom: 24,
+                ...loadFadeStyle(heroReady, 100, "fadeIn"),
               }}
             >
-              <div
-                style={{
-                  height: 1,
-                  width: 80,
-                  background: "linear-gradient(90deg, transparent, #ff006e)",
-                }}
-              />
+              <div style={{ height: 1, width: 80, background: "linear-gradient(90deg, transparent, #ff006e)" }} />
               <span style={{ color: "#ff99cc", fontSize: 24 }}>♀</span>
-              <div
-                style={{
-                  height: 1,
-                  width: 80,
-                  background: "linear-gradient(90deg, #ff006e, transparent)",
-                }}
-              />
+              <div style={{ height: 1, width: 80, background: "linear-gradient(90deg, #ff006e, transparent)" }} />
             </div>
 
             <div
@@ -138,6 +230,7 @@ export default function LandingPage() {
                 color: "#c090e0",
                 textTransform: "uppercase",
                 marginBottom: 16,
+                ...loadFadeStyle(heroReady, 250),
               }}
             >
               Celebrating Women's Day 2026
@@ -151,6 +244,7 @@ export default function LandingPage() {
                 lineHeight: 1.1,
                 marginBottom: 16,
                 textShadow: "0 0 40px rgba(255,0,110,0.3)",
+                ...loadFadeStyle(heroReady, 450),
               }}
             >
               Women Who{" "}
@@ -167,6 +261,7 @@ export default function LandingPage() {
                 lineHeight: 1.7,
                 marginBottom: 32,
                 fontStyle: "italic",
+                ...loadFadeStyle(heroReady, 650),
               }}
             >
               Hosted by the Department of Computer Science &amp; Applications
@@ -183,6 +278,7 @@ export default function LandingPage() {
                 border: "1px solid rgba(255,0,110,0.3)",
                 padding: "10px 24px",
                 borderRadius: 40,
+                ...loadFadeStyle(heroReady, 850),
               }}
             >
               <span style={{ fontSize: 16 }}>📅</span>
@@ -194,22 +290,25 @@ export default function LandingPage() {
                   letterSpacing: 2,
                 }}
               >
-                Sunday, 16 March 2026
+                Tuesday, 18 March 2026
               </span>
             </div>
           </div>
         </section>
 
-        {/* ── Events Section ── */}
+        {/* ══ Events Section ═════════════════════════════════════ */}
         <section
+          ref={eventsRef}
           style={{
             padding: "60px 32px",
             background: "linear-gradient(180deg, #0d0221 0%, #0a0118 100%)",
+            scrollMarginTop: 64,
           }}
         >
           <div style={{ maxWidth: 900, margin: "0 auto" }}>
             <div style={{ textAlign: "center", marginBottom: 48 }}>
-              <div
+              <ScrollFade
+                delay={0}
                 style={{
                   fontFamily: "'Cormorant Garamond', serif",
                   fontSize: 13,
@@ -220,8 +319,11 @@ export default function LandingPage() {
                 }}
               >
                 Events of the Day
-              </div>
-              <h2
+              </ScrollFade>
+
+              <ScrollFade
+                as="h2"
+                delay={200}
                 style={{
                   fontFamily: "'Playfair Display', serif",
                   fontSize: 40,
@@ -229,17 +331,14 @@ export default function LandingPage() {
                 }}
               >
                 A Day of{" "}
-                <em style={{ color: "#ff99cc", fontStyle: "italic" }}>
-                  Celebrations
-                </em>
-              </h2>
+                <em style={{ color: "#ff99cc", fontStyle: "italic" }}>Celebrations</em>
+              </ScrollFade>
             </div>
 
-            {/* Quiz Event Card */}
-            <div
+            <ScrollFade
+              delay={100}
               style={{
-                background:
-                  "linear-gradient(135deg, rgba(123,47,255,0.12) 0%, rgba(255,0,110,0.08) 100%)",
+                background: "linear-gradient(135deg, rgba(123,47,255,0.12) 0%, rgba(255,0,110,0.08) 100%)",
                 border: "1px solid rgba(123,47,255,0.3)",
                 borderRadius: 8,
                 padding: 40,
@@ -257,14 +356,16 @@ export default function LandingPage() {
                   top: -30, right: -30,
                   width: 160, height: 160,
                   borderRadius: "50%",
-                  background:
-                    "radial-gradient(circle, rgba(123,47,255,0.15), transparent)",
+                  background: "radial-gradient(circle, rgba(123,47,255,0.15), transparent)",
                   pointerEvents: "none",
                 }}
               />
-              <div style={{ fontSize: 60 }}>🧠</div>
+
+              <ScrollFade delay={250} style={{ fontSize: 60 }}>🧠</ScrollFade>
+
               <div style={{ flex: 1, minWidth: 200 }}>
-                <div
+                <ScrollFade
+                  delay={350}
                   style={{
                     fontFamily: "'Cormorant Garamond', serif",
                     fontSize: 13,
@@ -275,8 +376,11 @@ export default function LandingPage() {
                   }}
                 >
                   Featured Event
-                </div>
-                <h3
+                </ScrollFade>
+
+                <ScrollFade
+                  as="h3"
+                  delay={480}
                   style={{
                     fontFamily: "'Playfair Display', serif",
                     fontSize: 32,
@@ -285,8 +389,11 @@ export default function LandingPage() {
                   }}
                 >
                   Quiz Competition
-                </h3>
-                <p
+                </ScrollFade>
+
+                <ScrollFade
+                  as="p"
+                  delay={620}
                   style={{
                     fontFamily: "'Cormorant Garamond', serif",
                     color: "#b090d0",
@@ -300,17 +407,24 @@ export default function LandingPage() {
                   <strong style={{ color: "#ff99cc", fontStyle: "normal" }}>
                     Dinesh Veluswamy
                   </strong>{" "}
-                  — test your knowledge, challenge your peers, and claim the
-                  crown.
-                </p>
-                <LaunchButton onClick={() => navigate("/signin")} />
+                  — test your knowledge, challenge your peers, and claim the crown.
+                </ScrollFade>
+
+                <ScrollFade delay={780}>
+                  <LaunchButton onClick={() => navigate("/signin")} />
+                </ScrollFade>
               </div>
-            </div>
+            </ScrollFade>
           </div>
         </section>
 
-        {/* ── Footer ── */}
-        <CrosswordFooter />
+        {/* ══ Footer / About Us ══════════════════════════════════ */}
+        <div ref={footerRef} style={{ scrollMarginTop: 64 }}>
+          <ScrollFade delay={0}>
+            <CrosswordFooter />
+          </ScrollFade>
+        </div>
+
       </div>
     </>
   );
@@ -342,7 +456,7 @@ function LaunchButton({ onClick }) {
         e.currentTarget.style.boxShadow = "none";
       }}
     >
-      Launch Quiz App ›
+      Admin Portal ›
     </button>
   );
 }

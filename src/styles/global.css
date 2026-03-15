@@ -124,16 +124,7 @@ body {
   96%  { text-shadow: -1px 0 var(--neon-pink);   transform: translateX(1px);  }
 }
 
-.scan-line {
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent 0%, var(--cyber-glow) 50%, transparent 100%);
-  opacity: 0.15;
-  animation: scan 8s linear infinite;
-  pointer-events: none;
-  z-index: 9999;
-}
+
 @keyframes scan {
   0%   { top: -2px;   }
   100% { top: 100vh;  }
