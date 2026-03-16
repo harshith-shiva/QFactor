@@ -15,6 +15,10 @@ const KEYFRAMES = `
   0%   { opacity: 0; transform: scale(0.95); }
   100% { opacity: 1; transform: scale(1); }
 }
+@keyframes wdMenuSlide {
+  0%   { opacity: 0; transform: translateY(-8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
 `;
 
 function injectKeyframes() {
@@ -74,8 +78,21 @@ function ScrollFade({ delay = 0, mode = "up", as: Tag = "div", style: s = {}, ch
   );
 }
 
+/* ── Simple hook to track viewport width ─────────────────────────── */
+function useIsMobile(breakpoint = 640) {
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < breakpoint);
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < breakpoint);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, [breakpoint]);
+  return isMobile;
+}
+
 export default function LandingPage() {
-  const navigate = useNavigate();
+  const navigate  = useNavigate();
+  const isMobile  = useIsMobile();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => { injectKeyframes(); }, []);
 
@@ -91,6 +108,7 @@ export default function LandingPage() {
   const footerRef = useRef(null);
 
   function scrollTo(ref) {
+    setMenuOpen(false);
     ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
@@ -99,6 +117,12 @@ export default function LandingPage() {
     setShowIntro(false);
     setTimeout(() => setHeroReady(true), 300);
   }
+
+  const NAV_LINKS = [
+    { label: "Home",     ref: heroRef },
+    { label: "Event",    ref: eventsRef },
+    { label: "About Us", ref: footerRef },
+  ];
 
   return (
     <>
@@ -110,7 +134,7 @@ export default function LandingPage() {
         <nav
           style={{
             background: "rgba(10,0,25,0.95)",
-            padding: "14px 32px",
+            padding: isMobile ? "12px 20px" : "14px 32px",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -124,7 +148,7 @@ export default function LandingPage() {
           <div
             style={{
               fontFamily: "'Cormorant Garamond', serif",
-              fontSize: 22,
+              fontSize: isMobile ? 17 : 22,
               color: "#f0c0ff",
               letterSpacing: 3,
               ...loadFadeStyle(heroReady, 0),
@@ -134,55 +158,108 @@ export default function LandingPage() {
             <span style={{ color: "#ff99cc", fontStyle: "italic" }}>PSG</span>
           </div>
 
-          {/* Nav buttons + Date — right side */}
-          <div style={{ display: "flex", alignItems: "center", gap: 32, ...loadFadeStyle(heroReady, 200) }}>
-            {[
-              { label: "Home",     ref: heroRef },
-              { label: "Event",    ref: eventsRef },
-              { label: "About Us", ref: footerRef },
-            ].map(({ label, ref }) => (
+          {/* Desktop: links + divider + date */}
+          {!isMobile && (
+            <div style={{ display: "flex", alignItems: "center", gap: 32, ...loadFadeStyle(heroReady, 200) }}>
+              {NAV_LINKS.map(({ label, ref }) => (
+                <button
+                  key={label}
+                  onClick={() => scrollTo(ref)}
+                  style={{
+                    background: "none", border: "none", cursor: "pointer",
+                    fontFamily: "'Cormorant Garamond', serif",
+                    fontSize: 15, letterSpacing: 3,
+                    color: "#c090e0", textTransform: "uppercase", padding: 0,
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+              <div style={{ width: 1, height: 18, background: "rgba(180,60,255,0.3)" }} />
+              <div style={{
+                fontFamily: "'Cormorant Garamond', serif",
+                color: "#c090e0", fontSize: 14, letterSpacing: 2,
+              }}>
+                16 · III · 2026
+              </div>
+            </div>
+          )}
+
+          {/* Mobile: hamburger */}
+          {isMobile && (
+            <button
+              onClick={() => setMenuOpen((o) => !o)}
+              style={{
+                background: "none", border: "none", cursor: "pointer",
+                padding: 4, display: "flex", flexDirection: "column",
+                gap: 5, alignItems: "flex-end",
+              }}
+            >
+              <span style={{
+                display: "block", height: 1.5, borderRadius: 2,
+                background: "#c090e0",
+                width: menuOpen ? 22 : 22,
+                transform: menuOpen ? "rotate(45deg) translate(4px, 4px)" : "none",
+                transition: "transform 0.2s",
+              }} />
+              <span style={{
+                display: "block", height: 1.5, width: 16, borderRadius: 2,
+                background: "#c090e0",
+                opacity: menuOpen ? 0 : 1,
+                transition: "opacity 0.2s",
+              }} />
+              <span style={{
+                display: "block", height: 1.5, borderRadius: 2,
+                background: "#c090e0",
+                width: menuOpen ? 22 : 22,
+                transform: menuOpen ? "rotate(-45deg) translate(4px, -4px)" : "none",
+                transition: "transform 0.2s",
+              }} />
+            </button>
+          )}
+        </nav>
+
+        {/* Mobile dropdown menu */}
+        {isMobile && menuOpen && (
+          <div style={{
+            position: "sticky", top: 49, zIndex: 99,
+            background: "rgba(10,0,25,0.98)",
+            borderBottom: "1px solid rgba(180,60,255,0.2)",
+            display: "flex", flexDirection: "column",
+            animation: "wdMenuSlide 0.2s ease forwards",
+          }}>
+            {NAV_LINKS.map(({ label, ref }) => (
               <button
                 key={label}
                 onClick={() => scrollTo(ref)}
                 style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
+                  background: "none", border: "none", cursor: "pointer",
                   fontFamily: "'Cormorant Garamond', serif",
-                  fontSize: 15,
-                  letterSpacing: 3,
-                  color: "#c090e0",
-                  textTransform: "uppercase",
-                  padding: 0,
+                  fontSize: 15, letterSpacing: 3,
+                  color: "#c090e0", textTransform: "uppercase",
+                  padding: "14px 20px", textAlign: "left",
+                  borderBottom: "1px solid rgba(180,60,255,0.08)",
                 }}
               >
                 {label}
               </button>
             ))}
-
-            {/* Divider */}
-            <div style={{ width: 1, height: 18, background: "rgba(180,60,255,0.3)" }} />
-
-            {/* Date */}
-            <div
-              style={{
-                fontFamily: "'Cormorant Garamond', serif",
-                color: "#c090e0",
-                fontSize: 14,
-                letterSpacing: 2,
-              }}
-            >
+            <div style={{
+              padding: "12px 20px",
+              fontFamily: "'Cormorant Garamond', serif",
+              color: "#604080", fontSize: 13, letterSpacing: 2,
+            }}>
               16 · III · 2026
             </div>
           </div>
-        </nav>
+        )}
 
         {/* ══ Hero ═══════════════════════════════════════════════ */}
         <section
           ref={heroRef}
           className="wd-hero"
           style={{
-            padding: "80px 32px",
+            padding: isMobile ? "60px 20px" : "80px 32px",
             minHeight: "85vh",
             display: "flex",
             alignItems: "center",
@@ -206,90 +283,69 @@ export default function LandingPage() {
             />
           ))}
 
-          <div style={{ textAlign: "center", position: "relative", zIndex: 2, maxWidth: 760 }}>
+          <div style={{ textAlign: "center", position: "relative", zIndex: 2, maxWidth: 760, width: "100%" }}>
             <div
               style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 16,
-                marginBottom: 24,
+                display: "flex", alignItems: "center",
+                justifyContent: "center", gap: 16, marginBottom: 24,
                 ...loadFadeStyle(heroReady, 100, "fadeIn"),
               }}
             >
-              <div style={{ height: 1, width: 80, background: "linear-gradient(90deg, transparent, #ff006e)" }} />
+              <div style={{ height: 1, width: isMobile ? 48 : 80, background: "linear-gradient(90deg, transparent, #ff006e)" }} />
               <span style={{ color: "#ff99cc", fontSize: 24 }}>♀</span>
-              <div style={{ height: 1, width: 80, background: "linear-gradient(90deg, #ff006e, transparent)" }} />
+              <div style={{ height: 1, width: isMobile ? 48 : 80, background: "linear-gradient(90deg, #ff006e, transparent)" }} />
             </div>
 
-            <div
-              style={{
-                fontFamily: "'Cormorant Garamond', serif",
-                fontSize: 13,
-                letterSpacing: 6,
-                color: "#c090e0",
-                textTransform: "uppercase",
-                marginBottom: 16,
-                ...loadFadeStyle(heroReady, 250),
-              }}
-            >
+            <div style={{
+              fontFamily: "'Cormorant Garamond', serif",
+              fontSize: isMobile ? 11 : 13,
+              letterSpacing: isMobile ? 4 : 6,
+              color: "#c090e0", textTransform: "uppercase", marginBottom: 16,
+              ...loadFadeStyle(heroReady, 250),
+            }}>
               Celebrating Women's Day 2026
             </div>
 
-            <h1
-              style={{
-                fontFamily: "'Playfair Display', serif",
-                fontSize: "clamp(36px, 7vw, 72px)",
-                color: "#fff",
-                lineHeight: 1.1,
-                marginBottom: 16,
-                textShadow: "0 0 40px rgba(255,0,110,0.3)",
-                ...loadFadeStyle(heroReady, 450),
-              }}
-            >
+            <h1 style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: isMobile ? "clamp(32px, 9vw, 48px)" : "clamp(36px, 7vw, 72px)",
+              color: "#fff", lineHeight: 1.15, marginBottom: 16,
+              textShadow: "0 0 40px rgba(255,0,110,0.3)",
+              ...loadFadeStyle(heroReady, 450),
+            }}>
               Women Who{" "}
               <em style={{ color: "#ff99cc", fontStyle: "italic" }}>Shape</em>
               <br />
               The World
             </h1>
 
-            <p
-              style={{
-                fontFamily: "'Cormorant Garamond', serif",
-                fontSize: 20,
-                color: "#d0a0e8",
-                lineHeight: 1.7,
-                marginBottom: 32,
-                fontStyle: "italic",
-                ...loadFadeStyle(heroReady, 650),
-              }}
-            >
+            <p style={{
+              fontFamily: "'Cormorant Garamond', serif",
+              fontSize: isMobile ? 16 : 20,
+              color: "#d0a0e8", lineHeight: 1.7, marginBottom: 32,
+              fontStyle: "italic",
+              ...loadFadeStyle(heroReady, 650),
+            }}>
               Hosted by the Department of Computer Science &amp; Applications
-              <br />
+              {isMobile ? " " : <br />}
               and the Department of AMCS, PSG College of Technology
             </p>
 
-            <div
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 12,
-                background: "rgba(255,0,110,0.1)",
-                border: "1px solid rgba(255,0,110,0.3)",
-                padding: "10px 24px",
-                borderRadius: 40,
-                ...loadFadeStyle(heroReady, 850),
-              }}
-            >
-              <span style={{ fontSize: 16 }}>📅</span>
-              <span
-                style={{
-                  fontFamily: "'Cormorant Garamond', serif",
-                  color: "#ff99cc",
-                  fontSize: 16,
-                  letterSpacing: 2,
-                }}
-              >
+            <div style={{
+              display: "inline-flex", alignItems: "center", gap: 10,
+              background: "rgba(255,0,110,0.1)",
+              border: "1px solid rgba(255,0,110,0.3)",
+              padding: isMobile ? "8px 18px" : "10px 24px",
+              borderRadius: 40,
+              ...loadFadeStyle(heroReady, 850),
+            }}>
+              <span style={{ fontSize: 14 }}>📅</span>
+              <span style={{
+                fontFamily: "'Cormorant Garamond', serif",
+                color: "#ff99cc",
+                fontSize: isMobile ? 14 : 16,
+                letterSpacing: 2,
+              }}>
                 Tuesday, 18 March 2026
               </span>
             </div>
@@ -300,109 +356,74 @@ export default function LandingPage() {
         <section
           ref={eventsRef}
           style={{
-            padding: "60px 32px",
+            padding: isMobile ? "48px 20px" : "60px 32px",
             background: "linear-gradient(180deg, #0d0221 0%, #0a0118 100%)",
             scrollMarginTop: 64,
           }}
         >
           <div style={{ maxWidth: 900, margin: "0 auto" }}>
-            <div style={{ textAlign: "center", marginBottom: 48 }}>
-              <ScrollFade
-                delay={0}
-                style={{
-                  fontFamily: "'Cormorant Garamond', serif",
-                  fontSize: 13,
-                  letterSpacing: 6,
-                  color: "#9060c0",
-                  textTransform: "uppercase",
-                  marginBottom: 12,
-                }}
-              >
+            <div style={{ textAlign: "center", marginBottom: 40 }}>
+              <ScrollFade delay={0} style={{
+                fontFamily: "'Cormorant Garamond', serif",
+                fontSize: 13, letterSpacing: 6,
+                color: "#9060c0", textTransform: "uppercase", marginBottom: 12,
+              }}>
                 Events of the Day
               </ScrollFade>
 
-              <ScrollFade
-                as="h2"
-                delay={200}
-                style={{
-                  fontFamily: "'Playfair Display', serif",
-                  fontSize: 40,
-                  color: "#f0d0ff",
-                }}
-              >
+              <ScrollFade as="h2" delay={200} style={{
+                fontFamily: "'Playfair Display', serif",
+                fontSize: isMobile ? 28 : 40,
+                color: "#f0d0ff",
+              }}>
                 A Day of{" "}
                 <em style={{ color: "#ff99cc", fontStyle: "italic" }}>Celebrations</em>
               </ScrollFade>
             </div>
 
-            <ScrollFade
-              delay={100}
-              style={{
-                background: "linear-gradient(135deg, rgba(123,47,255,0.12) 0%, rgba(255,0,110,0.08) 100%)",
-                border: "1px solid rgba(123,47,255,0.3)",
-                borderRadius: 8,
-                padding: 40,
-                display: "flex",
-                alignItems: "center",
-                gap: 40,
-                flexWrap: "wrap",
-                position: "relative",
-                overflow: "hidden",
-              }}
-            >
-              <div
-                style={{
-                  position: "absolute",
-                  top: -30, right: -30,
-                  width: 160, height: 160,
-                  borderRadius: "50%",
-                  background: "radial-gradient(circle, rgba(123,47,255,0.15), transparent)",
-                  pointerEvents: "none",
-                }}
-              />
+            <ScrollFade delay={100} style={{
+              background: "linear-gradient(135deg, rgba(123,47,255,0.12) 0%, rgba(255,0,110,0.08) 100%)",
+              border: "1px solid rgba(123,47,255,0.3)",
+              borderRadius: 8,
+              padding: isMobile ? 24 : 40,
+              display: "flex",
+              alignItems: isMobile ? "flex-start" : "center",
+              flexDirection: isMobile ? "column" : "row",
+              gap: isMobile ? 20 : 40,
+              position: "relative", overflow: "hidden",
+            }}>
+              <div style={{
+                position: "absolute", top: -30, right: -30,
+                width: 160, height: 160, borderRadius: "50%",
+                background: "radial-gradient(circle, rgba(123,47,255,0.15), transparent)",
+                pointerEvents: "none",
+              }} />
 
-              <ScrollFade delay={250} style={{ fontSize: 60 }}>🧠</ScrollFade>
+              <ScrollFade delay={250} style={{ fontSize: isMobile ? 44 : 60 }}>🧠</ScrollFade>
 
-              <div style={{ flex: 1, minWidth: 200 }}>
-                <ScrollFade
-                  delay={350}
-                  style={{
-                    fontFamily: "'Cormorant Garamond', serif",
-                    fontSize: 13,
-                    letterSpacing: 4,
-                    color: "#9060c0",
-                    textTransform: "uppercase",
-                    marginBottom: 8,
-                  }}
-                >
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <ScrollFade delay={350} style={{
+                  fontFamily: "'Cormorant Garamond', serif",
+                  fontSize: 13, letterSpacing: 4,
+                  color: "#9060c0", textTransform: "uppercase", marginBottom: 8,
+                }}>
                   Featured Event
                 </ScrollFade>
 
-                <ScrollFade
-                  as="h3"
-                  delay={480}
-                  style={{
-                    fontFamily: "'Playfair Display', serif",
-                    fontSize: 32,
-                    color: "#f0d0ff",
-                    marginBottom: 8,
-                  }}
-                >
+                <ScrollFade as="h3" delay={480} style={{
+                  fontFamily: "'Playfair Display', serif",
+                  fontSize: isMobile ? 24 : 32,
+                  color: "#f0d0ff", marginBottom: 8,
+                }}>
                   Quiz Competition
                 </ScrollFade>
 
-                <ScrollFade
-                  as="p"
-                  delay={620}
-                  style={{
-                    fontFamily: "'Cormorant Garamond', serif",
-                    color: "#b090d0",
-                    fontSize: 17,
-                    lineHeight: 1.6,
-                    marginBottom: 20,
-                    fontStyle: "italic",
-                  }}
-                >
+                <ScrollFade as="p" delay={620} style={{
+                  fontFamily: "'Cormorant Garamond', serif",
+                  color: "#b090d0",
+                  fontSize: isMobile ? 15 : 17,
+                  lineHeight: 1.6, marginBottom: 20, fontStyle: "italic",
+                }}>
                   Conducted by Quiz Master{" "}
                   <strong style={{ color: "#ff99cc", fontStyle: "normal" }}>
                     Dinesh Veluswamy
@@ -436,15 +457,11 @@ function LaunchButton({ onClick }) {
       onClick={onClick}
       style={{
         background: "linear-gradient(135deg, #7b2fff, #ff006e)",
-        border: "none",
-        color: "#fff",
+        border: "none", color: "#fff",
         fontFamily: "'Cormorant Garamond', serif",
-        fontSize: 16,
-        letterSpacing: 3,
-        padding: "12px 32px",
-        cursor: "pointer",
-        borderRadius: 2,
-        textTransform: "uppercase",
+        fontSize: 16, letterSpacing: 3,
+        padding: "12px 32px", cursor: "pointer",
+        borderRadius: 2, textTransform: "uppercase",
         transition: "transform 0.2s, box-shadow 0.2s",
       }}
       onMouseEnter={(e) => {

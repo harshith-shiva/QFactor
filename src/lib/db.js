@@ -23,6 +23,7 @@ export const realDB = {
   getEvents: () => dbSelect("events", "*", "order=created_at.desc"),
   getEvent: (id) => dbSelect("events", "*", `id=eq.${id}`).then((r) => r?.[0]),
   updateEvent: (id, data) => dbUpdate("events", `id=eq.${id}`, data),
+  deleteEvent: (id) => dbDelete("events", `id=eq.${id}`),
 
   // ── Rounds ──────────────────────────────────────────────────────────────
   createRound: async (data) => {
@@ -117,6 +118,10 @@ export const demoDb = {
     Promise.resolve(_store.events.find((e) => e.id === id) ?? null),
   updateEvent: (id, data) =>
     Promise.resolve(demoUpdate("events", id, data)),
+  deleteEvent: (id) => {
+    demoDelete("events", id);
+    return Promise.resolve();
+  },
 
   createRound: (data) =>
     Promise.resolve(demoInsert("rounds", data)),

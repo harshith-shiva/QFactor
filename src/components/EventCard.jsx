@@ -3,9 +3,9 @@ import { useState } from "react";
 /**
  * EventCard — clickable card shown on the View Events page.
  *
- * Props: event, onClick
+ * Props: event, onClick, onDelete
  */
-export default function EventCard({ event, onClick }) {
+export default function EventCard({ event, onClick, onDelete }) {
   const [hovered, setHovered] = useState(false);
 
   const statusColor =
@@ -72,6 +72,7 @@ export default function EventCard({ event, onClick }) {
         </div>
       )}
 
+      {/* Status + Rounds row */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span
           style={{
@@ -96,6 +97,36 @@ export default function EventCard({ event, onClick }) {
           {event.num_rounds} ROUNDS
         </span>
       </div>
+
+      {/* Delete button — below the rounds row, pinned to bottom-right */}
+      {onDelete && (
+        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+            style={{
+              background: "rgba(255,0,60,0.06)",
+              border: "1px solid rgba(255,0,60,0.25)",
+              color: "var(--cyber-red)",
+              fontFamily: "'Orbitron', monospace",
+              fontSize: 8,
+              letterSpacing: 1,
+              padding: "4px 12px",
+              cursor: "pointer",
+              transition: "background 0.15s, border-color 0.15s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "rgba(255,0,60,0.16)";
+              e.currentTarget.style.borderColor = "rgba(255,0,60,0.6)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "rgba(255,0,60,0.06)";
+              e.currentTarget.style.borderColor = "rgba(255,0,60,0.25)";
+            }}
+          >
+            ✕ DELETE
+          </button>
+        </div>
+      )}
     </div>
   );
 }

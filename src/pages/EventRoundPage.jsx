@@ -65,7 +65,7 @@ export default function EventRoundPage() {
   const [savingId,   setSavingId]   = useState(null);
   const [deletingId, setDeletingId] = useState(null);
 
-  // ── Load ───────────────────────────────────────────────────────────────────
+  // ── Load event / rounds / teams / scores — once per eventId ──────────────
   useEffect(() => {
     async function load() {
       const [ev, r, t, s] = await Promise.all([
@@ -75,26 +75,30 @@ export default function EventRoundPage() {
         db.getScores(eventId),
       ]);
       setEvent(ev);
-      const loadedRounds = r ?? [];
-      const loadedScores = s ?? [];
-      setRounds(loadedRounds);
+      setRounds(r ?? []);
       setTeams(t ?? []);
-      setScores(loadedScores);
-
-      // Restore questionNum from the highest question_number already in DB for this round
-      const thisRound = loadedRounds[currentRoundIdx];
-      if (thisRound) {
-        const roundScores = loadedScores.filter((sc) => sc.round_id === thisRound.id);
-        if (roundScores.length > 0) {
-          const maxQ = Math.max(...roundScores.map((sc) => sc.question_number ?? 0));
-          setQuestionNum(maxQ + 1);
-        }
-      }
-
+      setScores(s ?? []);
       setLoading(false);
     }
     load();
   }, [eventId]);
+
+  // ── Reset questionNum on round change (runs after load + on navigation) ───
+  useEffect(() => {
+    if (loading) return;
+    const thisRound = rounds[currentRoundIdx];
+    if (!thisRound) { setQuestionNum(0); return; }
+    const roundScores = scores.filter((sc) => sc.round_id === thisRound.id);
+    if (roundScores.length > 0) {
+      const maxQ = Math.max(...roundScores.map((sc) => sc.question_number ?? 0));
+      setQuestionNum(maxQ + 1);
+    } else {
+      setQuestionNum(0);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentRoundIdx, rounds, loading]);
+  // ↑ scores is intentionally excluded: we only want to restore on round-switch,
+  //   not re-run on every score addition during live play.
 
   const currentRound = rounds[currentRoundIdx];
   const isLastRound  = currentRoundIdx === rounds.length - 1;
@@ -152,6 +156,12 @@ export default function EventRoundPage() {
     });
     setScores((prev) => [...prev, newScore]);
     setQuestionNum((q) => Math.min(q + 1, currentRound.num_questions ?? 99));
+  }
+
+  // ── Mark event completed and go to final stats ────────────────────────────
+  async function handleFinishEvent() {
+    await db.updateEvent(eventId, { status: "completed" });
+    navigate(`/admin/events/${eventId}/round/${currentRoundIdx}/stats`);
   }
 
   // ── Audit: start editing a row ─────────────────────────────────────────────
@@ -693,7 +703,9 @@ export default function EventRoundPage() {
         <button
           className="cyber-btn"
           onClick={() =>
-            navigate(`/admin/events/${eventId}/round/${currentRoundIdx}/stats`)
+            isLastRound
+              ? handleFinishEvent()
+              : navigate(`/admin/events/${eventId}/round/${currentRoundIdx}/stats`)
           }
         >
           {isLastRound ? "FINAL STATS ◆" : "VIEW STATS ◆"}

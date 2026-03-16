@@ -6,9 +6,12 @@ import { useDB } from "../hooks/useDB.js";
 import { getTotalScore, getRoundScore, rankByTotal } from "../lib/scoreUtils.js";
 
 export default function FinalStatsPage() {
-  const { eventId } = useParams();
+  const { eventId, roundIndex } = useParams();
   const navigate    = useNavigate();
   const db          = useDB();
+
+  // roundIndex in URL tells us if we're viewing a specific round or the final overview
+  const currentRoundIdx = roundIndex !== undefined ? Number(roundIndex) : null;
 
   const [event,   setEvent]   = useState(null);
   const [rounds,  setRounds]  = useState([]);
@@ -49,7 +52,10 @@ export default function FinalStatsPage() {
       style={{ minHeight: "100vh", background: "var(--cyber-bg)" }}
     >
       <CyberHeader
-        title="FINAL STANDINGS"
+        title={currentRoundIdx !== null
+          ? `ROUND ${currentRoundIdx + 1} STATS — ${rounds[currentRoundIdx]?.name ?? ""}`
+          : "FINAL STANDINGS"
+        }
         backTo="/admin/events"
       />
 
@@ -229,14 +235,73 @@ export default function FinalStatsPage() {
           </div>
         </div>
 
-        <div style={{ textAlign: "center", marginTop: 32 }}>
-          <button
-            className="cyber-btn"
-            onClick={() => navigate("/admin/events")}
-          >
-            ← BACK TO EVENTS
-          </button>
-        </div>
+        {/* ── Navigation ── */}
+        {currentRoundIdx !== null ? (
+          /* Viewing a specific round — show back to final standings */
+          <div style={{ textAlign: "center", marginTop: 24, display: "flex", justifyContent: "center", gap: 12, flexWrap: "wrap" }}>
+            {currentRoundIdx > 0 && (
+              <button
+                className="cyber-btn"
+                onClick={() => navigate(`/admin/events/${eventId}/round/${currentRoundIdx - 1}/stats`)}
+              >
+                ← ROUND {currentRoundIdx}
+              </button>
+            )}
+            <button
+              className="cyber-btn success"
+              onClick={() => navigate(`/admin/events/${eventId}/final`)}
+            >
+              ◆ FINAL STANDINGS
+            </button>
+            {currentRoundIdx < rounds.length - 1 && (
+              <button
+                className="cyber-btn"
+                onClick={() => navigate(`/admin/events/${eventId}/round/${currentRoundIdx + 1}/stats`)}
+              >
+                ROUND {currentRoundIdx + 2} →
+              </button>
+            )}
+          </div>
+        ) : (
+          /* Final standings page — show round buttons + back to events */
+          <>
+            {rounds.length > 0 && (
+              <div className="cyber-panel" style={{ padding: 24, borderRadius: 2, marginTop: 24 }}>
+                <div
+                  style={{
+                    fontFamily: "'Orbitron', monospace",
+                    fontSize: 10,
+                    color: "var(--cyber-dim)",
+                    letterSpacing: 3,
+                    marginBottom: 16,
+                  }}
+                >
+                  VIEW INDIVIDUAL ROUND STATS
+                </div>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  {rounds.map((round, idx) => (
+                    <button
+                      key={round.id}
+                      className="cyber-btn"
+                      onClick={() => navigate(`/admin/events/${eventId}/round/${idx}/stats`)}
+                      style={{ fontSize: 10, padding: "8px 16px" }}
+                    >
+                      {round.name ?? `ROUND ${idx + 1}`} ◆
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div style={{ textAlign: "center", marginTop: 24 }}>
+              <button
+                className="cyber-btn"
+                onClick={() => navigate("/admin/events")}
+              >
+                ← BACK TO EVENTS
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

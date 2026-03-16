@@ -1,15 +1,11 @@
 /**
  * CrosswordFooter — decorative crossword puzzle footer for the Landing Page.
  *
- * Features:
- *  - Starfield background (static tiny dots + twinkling ones)
- *  - UFO flies in from far distance on first view, parks top-right
- *  - Tractor beam radiates down revealing Harshith Shiva & Rajeev dev cards
- *  - Hover-to-highlight crossword clues
+ * Desktop: UFO flies in, beam extends, dev cards revealed top-right. UNCHANGED.
+ * Mobile:  No UFO/beam. Dev cards render as plain in-flow section below crossword.
  */
 import { useState, useEffect, useRef, useMemo } from 'react';
 
-// ── Seeded pseudo-random — stable stars across renders ───────────────────────
 function seededRand(seed) {
   let s = seed;
   return () => {
@@ -32,7 +28,6 @@ const ACCENT_STARS = [
   [90, 75, '#a0e8ff'], [5,  82, '#d0c0ff'], [60,  5, '#ffe0c0'],
 ];
 
-// ── Dev profiles ─────────────────────────────────────────────────────────────
 const DEVS = [
   {
     name: 'Harshith Shiva',
@@ -55,12 +50,27 @@ const DEVS = [
 const GH_PATH = "M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.2 11.38.6.1.82-.26.82-.58v-2.03c-3.34.72-4.04-1.61-4.04-1.61-.54-1.38-1.33-1.75-1.33-1.75-1.09-.74.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.83 2.8 1.3 3.49 1 .1-.78.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.1-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 3-.4c1.02 0 2.04.13 3 .4 2.28-1.55 3.3-1.23 3.3-1.23.64 1.66.24 2.88.12 3.18.77.84 1.23 1.91 1.23 3.22 0 4.61-2.8 5.63-5.48 5.92.43.37.81 1.1.81 2.22v3.29c0 .32.22.7.83.58C20.56 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z";
 const LI_PATH = "M20.45 20.45h-3.55v-5.57c0-1.33-.03-3.04-1.85-3.04-1.85 0-2.13 1.45-2.13 2.94v5.67H9.37V9h3.41v1.56h.05c.47-.9 1.63-1.85 3.35-1.85 3.58 0 4.25 2.36 4.25 5.43v6.31zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.55V9h3.57v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0z";
 
+// ── JS breakpoint hook — drives mobile/desktop split in render ───────────────
+function useIsMobile(bp = 768) {
+  const [mobile, setMobile] = useState(
+    () => typeof window !== 'undefined' ? window.innerWidth < bp : false
+  );
+  useEffect(() => {
+    const fn = () => setMobile(window.innerWidth < bp);
+    window.addEventListener('resize', fn);
+    return () => window.removeEventListener('resize', fn);
+  }, [bp]);
+  return mobile;
+}
+
 export default function CrosswordFooter() {
+  const isMobile = useIsMobile();
+
   const [hoveredWordIndex, setHoveredWordIndex] = useState(-1);
-  const [ufoPhase, setUfoPhase]         = useState('idle'); // idle|flying|hovering|beaming|revealed
+  const [ufoPhase, setUfoPhase]         = useState('idle');
   const [beamProgress, setBeamProgress] = useState(0);
   const [cardsVisible, setCardsVisible] = useState(false);
-  const footerRef  = useRef(null);
+  const footerRef   = useRef(null);
   const hasAnimated = useRef(false);
 
   const ROWS = 9, COLS = 12;
@@ -101,7 +111,7 @@ export default function CrosswordFooter() {
     ],
   };
 
-  // ── Trigger UFO sequence once when footer enters viewport ────────────────
+  // UFO sequence only fires on desktop
   useEffect(() => {
     const el = footerRef.current;
     if (!el) return;
@@ -109,7 +119,8 @@ export default function CrosswordFooter() {
       if (entry.isIntersecting && !hasAnimated.current) {
         hasAnimated.current = true;
         obs.disconnect();
-        runUfoSequence();
+        // Guard: only run UFO on desktop
+        if (window.innerWidth >= 768) runUfoSequence();
       }
     }, { threshold: 0.1 });
     obs.observe(el);
@@ -136,7 +147,6 @@ export default function CrosswordFooter() {
 
   const ufoActive = ufoPhase !== 'idle';
 
-  // ── Link button hover helper ─────────────────────────────────────────────
   function linkHover(color) {
     return {
       onMouseEnter: e => { e.currentTarget.style.color = color; e.currentTarget.style.borderColor = color + '99'; },
@@ -155,7 +165,7 @@ export default function CrosswordFooter() {
         overflow: 'hidden',
       }}
     >
-      {/* ── All keyframe animations ── */}
+      {/* ── Keyframes + desktop UFO classes — untouched ── */}
       <style>{`
         @keyframes cf-twinkle {
           0%,100% { opacity: var(--op); transform: scale(1); }
@@ -213,8 +223,8 @@ export default function CrosswordFooter() {
         ))}
       </svg>
 
-      {/* ── UFO ── */}
-      {ufoActive && (
+      {/* ── Desktop only: UFO ── */}
+      {!isMobile && ufoActive && (
         <div className={`cf-ufo ${ufoPhase}`}>
           <svg viewBox="0 0 118 76" width="118" height="76" xmlns="http://www.w3.org/2000/svg">
             <defs>
@@ -239,7 +249,6 @@ export default function CrosswordFooter() {
               </linearGradient>
             </defs>
 
-            {/* Tractor beam */}
             {(ufoPhase === 'beaming' || ufoPhase === 'revealed') && (
               <g style={{ animation: 'cf-beam-pulse 1.4s ease-in-out infinite' }}>
                 <polygon points="44,50 74,50 94,76 24,76"
@@ -252,14 +261,11 @@ export default function CrosswordFooter() {
               </g>
             )}
 
-            {/* Saucer disc */}
             <ellipse cx="59" cy="46" rx="42" ry="11" fill="url(#cf-body)" filter="url(#cf-glow)"/>
             <ellipse cx="59" cy="44" rx="42" ry="9.5" fill="#7a8fa0"/>
             <ellipse cx="59" cy="43" rx="40" ry="8"   fill="#9db0c0"/>
-            {/* Rim highlight */}
             <ellipse cx="59" cy="43" rx="40" ry="8" fill="none" stroke="#cce0f0" strokeWidth="0.9" opacity="0.5"/>
 
-            {/* Rim lights */}
             {[0,40,80,120,160,200,240,280,320].map((deg, i) => {
               const rad = (deg * Math.PI) / 180;
               const colors = ['#ff7755','#44ffcc','#ffee44','#ff88cc','#44ddff'];
@@ -271,19 +277,16 @@ export default function CrosswordFooter() {
               );
             })}
 
-            {/* Dome */}
             <ellipse cx="59" cy="38" rx="20" ry="16" fill="url(#cf-dome)" opacity="0.88"/>
             <ellipse cx="59" cy="38" rx="20" ry="16" fill="none" stroke="#c090ff" strokeWidth="0.9" opacity="0.65"/>
-            {/* Dome shine */}
             <ellipse cx="52" cy="31" rx="7" ry="4.5" fill="white" opacity="0.16"/>
-            {/* Dome inner glow */}
             <ellipse cx="59" cy="40" rx="12" ry="9" fill="#9060ff" opacity="0.12"/>
           </svg>
         </div>
       )}
 
-      {/* ── Dev cards (revealed by beam) ── */}
-      {cardsVisible && (
+      {/* ── Desktop only: dev cards revealed by beam ── */}
+      {!isMobile && cardsVisible && (
         <div style={{
           position: 'absolute',
           top: 80,
@@ -293,7 +296,7 @@ export default function CrosswordFooter() {
           gap: 10,
           zIndex: 9,
           width: 188,
-          marginTop: '50px'
+          marginTop: '50px',
         }}>
           {DEVS.map((dev, i) => (
             <div
@@ -310,18 +313,10 @@ export default function CrosswordFooter() {
                 backdropFilter: 'blur(10px)',
               }}
             >
-              <div style={{
-                fontFamily: "'Orbitron', monospace",
-                fontSize: 10, color: dev.color,
-                letterSpacing: 1, marginBottom: 2,
-              }}>
+              <div style={{ fontFamily:"'Orbitron', monospace", fontSize:10, color:dev.color, letterSpacing:1, marginBottom:2 }}>
                 {dev.name}
               </div>
-              <div style={{
-                fontFamily: "'Cormorant Garamond', serif",
-                fontSize: 11, color: '#8070a0',
-                fontStyle: 'italic', marginBottom: 9,
-              }}>
+              <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:11, color:'#8070a0', fontStyle:'italic', marginBottom:9 }}>
                 {dev.role}
               </div>
               <div style={{ display:'flex', gap:6 }}>
@@ -329,25 +324,11 @@ export default function CrosswordFooter() {
                   { label:'GitHub',   href: dev.github,   icon: GH_PATH },
                   { label:'LinkedIn', href: dev.linkedin, icon: LI_PATH },
                 ].map(({ label, href, icon }) => (
-                  <a
-                    key={label}
-                    href={href}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <a key={label} href={href} target="_blank" rel="noopener noreferrer"
                     {...linkHover(dev.color)}
-                    style={{
-                      display:'flex', alignItems:'center', gap:4,
-                      fontSize:9, fontFamily:"'Orbitron', monospace",
-                      color:'#777', textDecoration:'none',
-                      background:'rgba(255,255,255,0.05)',
-                      border:'1px solid rgba(255,255,255,0.13)',
-                      borderRadius:3, padding:'3px 7px',
-                      transition:'color 0.2s, border-color 0.2s',
-                    }}
+                    style={{ display:'flex', alignItems:'center', gap:4, fontSize:9, fontFamily:"'Orbitron', monospace", color:'#777', textDecoration:'none', background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.13)', borderRadius:3, padding:'3px 7px', transition:'color 0.2s, border-color 0.2s' }}
                   >
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
-                      <path d={icon}/>
-                    </svg>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d={icon}/></svg>
                     {label}
                   </a>
                 ))}
@@ -361,25 +342,18 @@ export default function CrosswordFooter() {
       <div style={{ maxWidth: 900, margin: '0 auto', position: 'relative', zIndex: 1 }}>
 
         <div style={{ textAlign:'center', marginBottom:6 }}>
-          <span style={{
-            fontFamily:"'Cormorant Garamond', serif",
-            fontSize:13, letterSpacing:4, color:'#604080', textTransform:'uppercase',
-          }}>
+          <span style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:13, letterSpacing:4, color:'#604080', textTransform:'uppercase' }}>
             Built by CSA Tech Team
           </span>
         </div>
         <div style={{ textAlign:'center', marginBottom:32 }}>
-          <span style={{
-            fontFamily:"'Playfair Display', serif",
-            fontSize:22, color:'#c090e0', fontStyle:'italic',
-          }}>
+          <span style={{ fontFamily:"'Playfair Display', serif", fontSize:22, color:'#c090e0', fontStyle:'italic' }}>
             Meet the Team — Crossword Edition
           </span>
         </div>
 
         {/* Grid + Clues */}
         <div style={{ display:'flex', gap:40, flexWrap:'wrap', justifyContent:'center', alignItems:'flex-start' }}>
-
           <table className="crossword-grid" style={{ borderCollapse:'collapse' }}>
             <tbody>
               {grid.map((row, ri) => (
@@ -406,41 +380,74 @@ export default function CrosswordFooter() {
 
           <div style={{ minWidth:220 }}>
             <div style={{ marginBottom:20 }}>
-              <div style={{ fontFamily:"'Orbitron', monospace", fontSize:10, color:'#c090e0', letterSpacing:2, marginBottom:8, textTransform:'uppercase' }}>
-                Across
-              </div>
+              <div style={{ fontFamily:"'Orbitron', monospace", fontSize:10, color:'#c090e0', letterSpacing:2, marginBottom:8, textTransform:'uppercase' }}>Across</div>
               {clues.across.map((c, i) => (
                 <div key={i}
                   onMouseEnter={() => setHoveredWordIndex(i)}
                   onMouseLeave={() => setHoveredWordIndex(-1)}
-                  style={{
-                    fontFamily:"'Cormorant Garamond', serif", fontSize:14,
-                    color: hoveredWordIndex === i ? '#c090e0' : '#9070b0',
-                    marginBottom:6, lineHeight:1.4, cursor:'pointer', transition:'color 0.15s',
-                  }}>
+                  style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:14, color: hoveredWordIndex === i ? '#c090e0' : '#9070b0', marginBottom:6, lineHeight:1.4, cursor:'pointer', transition:'color 0.15s' }}>
                   {c}
                 </div>
               ))}
             </div>
             <div>
-              <div style={{ fontFamily:"'Orbitron', monospace", fontSize:10, color:'#c090e0', letterSpacing:2, marginBottom:8, textTransform:'uppercase' }}>
-                Down
-              </div>
+              <div style={{ fontFamily:"'Orbitron', monospace", fontSize:10, color:'#c090e0', letterSpacing:2, marginBottom:8, textTransform:'uppercase' }}>Down</div>
               {clues.down.map((c, i) => (
                 <div key={i}
                   onMouseEnter={() => setHoveredWordIndex(3 + i)}
                   onMouseLeave={() => setHoveredWordIndex(-1)}
-                  style={{
-                    fontFamily:"'Cormorant Garamond', serif", fontSize:14,
-                    color: hoveredWordIndex === 3 + i ? '#c090e0' : '#9070b0',
-                    marginBottom:6, lineHeight:1.4, cursor:'pointer', transition:'color 0.15s',
-                  }}>
+                  style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:14, color: hoveredWordIndex === 3 + i ? '#c090e0' : '#9070b0', marginBottom:6, lineHeight:1.4, cursor:'pointer', transition:'color 0.15s' }}>
                   {c}
                 </div>
               ))}
             </div>
           </div>
         </div>
+
+        {/* ── Mobile only: dev cards as in-flow section below crossword ── */}
+        {isMobile && (
+          <div style={{ marginTop: 36 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:20 }}>
+              <div style={{ height:1, flex:1, background:'rgba(100,50,150,0.3)' }} />
+              <span style={{ fontFamily:"'Orbitron', monospace", fontSize:9, color:'#604080', letterSpacing:3, textTransform:'uppercase', whiteSpace:'nowrap' }}>
+                ✦ The Builders
+              </span>
+              <div style={{ height:1, flex:1, background:'rgba(100,50,150,0.3)' }} />
+            </div>
+            <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+              {DEVS.map((dev) => (
+                <div key={dev.name} style={{
+                  background: 'rgba(8,4,20,0.93)',
+                  border: `1px solid ${dev.color}40`,
+                  borderRadius: 7,
+                  padding: '12px 14px',
+                  backdropFilter: 'blur(10px)',
+                }}>
+                  <div style={{ fontFamily:"'Orbitron', monospace", fontSize:10, color:dev.color, letterSpacing:1, marginBottom:2 }}>
+                    {dev.name}
+                  </div>
+                  <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:11, color:'#8070a0', fontStyle:'italic', marginBottom:9 }}>
+                    {dev.role}
+                  </div>
+                  <div style={{ display:'flex', gap:6 }}>
+                    {[
+                      { label:'GitHub',   href: dev.github,   icon: GH_PATH },
+                      { label:'LinkedIn', href: dev.linkedin, icon: LI_PATH },
+                    ].map(({ label, href, icon }) => (
+                      <a key={label} href={href} target="_blank" rel="noopener noreferrer"
+                        {...linkHover(dev.color)}
+                        style={{ display:'flex', alignItems:'center', gap:4, fontSize:9, fontFamily:"'Orbitron', monospace", color:'#777', textDecoration:'none', background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.13)', borderRadius:3, padding:'3px 7px', transition:'color 0.2s, border-color 0.2s' }}
+                      >
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d={icon}/></svg>
+                        {label}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div style={{ textAlign:'center', marginTop:32, paddingTop:20, borderTop:'1px solid rgba(100,50,150,0.2)' }}>
           <span style={{ fontFamily:"'Cormorant Garamond', serif", color:'#604080', fontSize:13, letterSpacing:2 }}>
